@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistem Simulasi Kod Warna Perintang</title>
+  <!-- Google Fonts: Poppins -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- GSAP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    * { font-family: 'Poppins', sans-serif; }
+    body { background: #F8FAFD; }
+    /* custom smooth scroll */
+    html { scroll-behavior: smooth; }
+    /* resistor body gradient */
+    .resistor-body {
+      background: linear-gradient(145deg, #e6d5b8, #d4b68a);
+      border-radius: 999px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15), inset 0 2px 4px rgba(255,255,240,0.6);
+    }
+    .band {
+      transition: background 0.25s ease;
+      border-radius: 999px;
+    }
+    /* tooltip wrapper */
+    .tooltip-trigger {
+      position: relative;
+      cursor: help;
+    }
+    .tooltip-trigger::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #202124;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .tooltip-trigger:hover::after {
+      opacity: 1;
+    }
+    /* floating resistor */
+    .floating-resistor {
+      animation: float 4s ease-in-out infinite;
+    }
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-12px); }
+      100% { transform: translateY(0px); }
+    }
+    /* circuit bg pattern (very soft) */
+    .circuit-bg {
+      background-image: radial-gradient(circle at 20% 30%, rgba(66,133,244,0.03) 0%, transparent 30%),
+                        radial-gradient(circle at 80% 70%, rgba(52,168,83,0.03) 0%, transparent 30%),
+                        repeating-linear-gradient(45deg, rgba(200,200,210,0.03) 0px, rgba(200,200,210,0.03) 2px, transparent 2px, transparent 8px);
+    }
+    /* material card */
+    .card-material {
+      background: #FFFFFF;
+      border-radius: 32px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.04), 0 2px 6px rgba(0,0,0,0.02);
+      transition: box-shadow 0.2s;
+    }
+    .card-material:hover {
+      box-shadow: 0 16px 48px rgba(0,0,0,0.06);
+    }
+    /* chip select */
+    .color-chip {
+      display: inline-block;
+      padding: 8px 18px;
+      border-radius: 40px;
+      border: 1px solid #E5E7EB;
+      background: white;
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: all 0.15s;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .color-chip.active {
+      border-color: #4285F4;
+      background: #E8F0FE;
+      box-shadow: 0 0 0 3px rgba(66,133,244,0.2);
+    }
+    .color-chip:hover {
+      background: #F1F3F4;
+      transform: scale(1.02);
+    }
+    .color-chip .dot {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      margin-right: 6px;
+      vertical-align: middle;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+    /* btn ripple */
+    .ripple-btn {
+      position: relative;
+      overflow: hidden;
+      transition: box-shadow 0.25s, transform 0.1s;
+    }
+    .ripple-btn:active {
+      transform: scale(0.97);
+    }
+    .ripple-btn::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(255,255,255,0.3);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.4s, height 0.4s;
+    }
+    .ripple-btn:active::after {
+      width: 300px;
+      height: 300px;
+    }
+    /* toast */
+    #toast {
+      transition: opacity 0.4s, transform 0.4s;
+      opacity: 0;
+      transform: translateY(-20px) scale(0.95);
+      pointer-events: none;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+    /* step icon */
+    .step-icon {
+      background: #F1F3F4;
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #4285F4;
+    }
+    /* focus ring */
+    *:focus-visible {
+      outline: 2px solid #4285F4;
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body class="circuit-bg antialiased">
+
+<!-- ====== HERO ====== -->
+<section class="relative min-h-screen flex items-center px-4 md:px-12 pt-20 pb-16 overflow-hidden">
+  <div class="absolute inset-0 pointer-events-none opacity-20">
+    <svg class="w-full h-full" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M100 100 L200 100 L250 150 L250 250 L180 320 L80 320 L30 250 L30 150 L100 100" stroke="#4285F4" stroke-width="1.5" stroke-dasharray="6 6" />
+      <circle cx="150" cy="200" r="4" fill="#34A853" />
+      <circle cx="400" cy="400" r="3" fill="#FBBC05" />
+      <path d="M500 100 L600 100 L650 150 L650 250 L580 320 L480 320 L430 250 L430 150 L500 100" stroke="#EA4335" stroke-width="1.2" stroke-dasharray="4 6" />
+      <circle cx="550" cy="180" r="2.5" fill="#4285F4" />
+    </svg>
+  </div>
+  <div class="max-w-6xl mx-auto w-full grid lg:grid-cols-2 gap-12 items-center relative z-10">
+    <!-- kiri -->
+    <div>
+      <div class="flex items-center gap-3 mb-6">
+        <span class="text-3xl">🔌</span>
+        <span class="text-sm font-semibold text-[#4285F4] bg-[#E8F0FE] px-4 py-1 rounded-full">Sistem Simulasi</span>
+      </div>
+      <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#202124] leading-tight">
+        <span class="block">Sistem Simulasi</span>
+        <span class="text-[#4285F4]">Kod Warna Perintang</span>
+      </h1>
+      <p class="text-lg md:text-xl text-[#3C4043] mt-6 max-w-lg leading-relaxed">
+        Belajar mengenal pasti nilai rintangan menggunakan simulator interaktif yang mudah difahami.
+      </p>
+      <div class="flex flex-wrap gap-4 mt-8">
+        <a href="#simulator" class="ripple-btn inline-flex items-center gap-2 bg-[#4285F4] text-white px-7 py-4 rounded-full font-semibold shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all">
+          <i data-lucide="play" class="w-5 h-5"></i> Mula Simulasi
+        </a>
+        <button class="inline-flex items-center gap-2 border border-[#E5E7EB] px-7 py-4 rounded-full font-medium text-[#202124] bg-white hover:bg-gray-50 transition-all shadow-sm">
+          <i data-lucide="book-open" class="w-5 h-5"></i> Cara Penggunaan
+        </button>
+      </div>
+    </div>
+    <!-- kanan: ilustrasi -->
+    <div class="flex justify-center">
+      <div class="relative w-64 h-64 md:w-80 md:h-80 lg:w-96 lg:h-96">
+        <svg viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="150" cy="150" r="120" fill="#E8F0FE" opacity="0.3" />
+          <rect x="90" y="70" width="120" height="60" rx="8" fill="#4285F4" opacity="0.1" />
+          <path d="M70 140 L230 140 L230 180 L70 180 Z" fill="#FBBC05" opacity="0.15" />
+          <circle cx="150" cy="160" r="30" fill="#34A853" opacity="0.2" />
+          <!-- resistor icon -->
+          <rect x="110" y="130" width="80" height="20" rx="10" fill="#d4b68a" stroke="#b8956a" stroke-width="1.5" />
+          <rect x="115" y="130" width="10" height="20" fill="#8B4513" rx="2" />
+          <rect x="135" y="130" width="10" height="20" fill="#DAA520" rx="2" />
+          <rect x="155" y="130" width="10" height="20" fill="#808080" rx="2" />
+          <line x1="110" y1="140" x2="80" y2="140" stroke="#555" stroke-width="3" stroke-linecap="round" />
+          <line x1="190" y1="140" x2="220" y2="140" stroke="#555" stroke-width="3" stroke-linecap="round" />
+          <text x="130" y="120" font-size="12" fill="#202124" font-weight="600">R</text>
+          <!-- led -->
+          <circle cx="220" cy="200" r="16" fill="#EA4335" opacity="0.5" />
+          <circle cx="220" cy="200" r="8" fill="#EA4335" opacity="0.8" />
+          <!-- cap -->
+          <rect x="70" y="200" width="14" height="30" rx="2" fill="#34A853" opacity="0.3" />
+          <!-- ic -->
+          <rect x="230" y="70" width="24" height="24" rx="3" fill="#202124" opacity="0.1" />
+          <line x1="230" y1="82" x2="220" y2="82" stroke="#202124" stroke-width="1.5" />
+          <line x1="254" y1="82" x2="264" y2="82" stroke="#202124" stroke-width="1.5" />
+        </svg>
+        <div class="absolute -bottom-4 -right-4 text-5xl floating-resistor">⚡</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== SIMULATOR ====== -->
+<section id="simulator" class="px-4 md:px-12 py-16 max-w-6xl mx-auto">
+  <div class="card-material p-6 md:p-10">
+    <h2 class="text-3xl font-bold text-[#202124] flex items-center gap-3 mb-8">
+      <i data-lucide="microchip" class="w-8 h-8 text-[#4285F4]"></i> Simulator Perintang
+    </h2>
+
+    <!-- resistor preview (besar) -->
+    <div class="flex justify-center my-8 relative">
+      <div class="floating-resistor w-full max-w-sm md:max-w-md">
+        <svg viewBox="0 0 400 140" class="w-full">
+          <!-- wayar kiri -->
+          <line x1="10" y1="70" x2="80" y2="70" stroke="#7f8c8d" stroke-width="6" stroke-linecap="round" />
+          <!-- body resistor -->
+          <rect x="80" y="40" width="240" height="60" rx="30" fill="#e6d5b8" stroke="#c4a882" stroke-width="1.5" />
+          <!-- band 1 -->
+          <rect id="band1" x="110" y="40" width="20" height="60" rx="4" fill="#d4b68a" />
+          <!-- band 2 -->
+          <rect id="band2" x="150" y="40" width="20" height="60" rx="4" fill="#d4b68a" />
+          <!-- band 3 -->
+          <rect id="band3" x="190" y="40" width="20" height="60" rx="4" fill="#d4b68a" />
+          <!-- band 4 (toleransi) -->
+          <rect id="band4" x="230" y="40" width="20" height="60" rx="4" fill="transparent" />
+          <!-- wayar kanan -->
+          <line x1="320" y1="70" x2="390" y2="70" stroke="#7f8c8d" stroke-width="6" stroke-linecap="round" />
+        </svg>
+      </div>
+    </div>
+
+    <!-- band selection: color chips -->
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+      <!-- Band 1 -->
+      <div>
+        <div class="flex items-center gap-1 mb-2">
+          <span class="font-semibold text-[#202124]">Band 1</span>
+          <span class="text-[#EA4335] text-sm">*</span>
+          <span class="tooltip-trigger ml-1" data-tip="Digit Pertama">
+            <i data-lucide="help-circle" class="w-4 h-4 text-[#5F6368]"></i>
+          </span>
+        </div>
+        <div id="band1Container" class="flex flex-wrap gap-2">
+          <!-- akan diisi js -->
+        </div>
+      </div>
+      <!-- Band 2 -->
+      <div>
+        <div class="flex items-center gap-1 mb-2">
+          <span class="font-semibold text-[#202124]">Band 2</span>
+          <span class="text-[#EA4335] text-sm">*</span>
+          <span class="tooltip-trigger ml-1" data-tip="Digit Kedua">
+            <i data-lucide="help-circle" class="w-4 h-4 text-[#5F6368]"></i>
+          </span>
+        </div>
+        <div id="band2Container" class="flex flex-wrap gap-2"></div>
+      </div>
+      <!-- Band 3 -->
+      <div>
+        <div class="flex items-center gap-1 mb-2">
+          <span class="font-semibold text-[#202124]">Band 3</span>
+          <span class="text-[#EA4335] text-sm">*</span>
+          <span class="tooltip-trigger ml-1" data-tip="Pengganda">
+            <i data-lucide="help-circle" class="w-4 h-4 text-[#5F6368]"></i>
+          </span>
+        </div>
+        <div id="band3Container" class="flex flex-wrap gap-2"></div>
+      </div>
+      <!-- Band 4 -->
+      <div>
+        <div class="flex items-center gap-1 mb-2">
+          <span class="font-semibold text-[#202124]">Band 4</span>
+          <span class="text-[#5F6368] text-sm">(pilihan)</span>
+          <span class="tooltip-trigger ml-1" data-tip="Toleransi">
+            <i data-lucide="help-circle" class="w-4 h-4 text-[#5F6368]"></i>
+          </span>
+        </div>
+        <div id="band4Container" class="flex flex-wrap gap-2"></div>
+      </div>
+    </div>
+
+    <!-- action buttons -->
+    <div class="flex flex-wrap gap-4 mt-10">
+      <button id="calculateBtn" class="ripple-btn inline-flex items-center gap-2 bg-[#4285F4] text-white px-8 py-4 rounded-full font-semibold shadow-md hover:shadow-lg transition-all">
+        <i data-lucide="calculator" class="w-5 h-5"></i> Kira Nilai
+      </button>
+      <button id="resetBtn" class="inline-flex items-center gap-2 border border-[#E5E7EB] px-8 py-4 rounded-full font-medium text-[#202124] bg-white hover:bg-gray-50 transition-all shadow-sm">
+        <i data-lucide="rotate-ccw" class="w-5 h-5"></i> Reset
+      </button>
+    </div>
+
+    <!-- live result card -->
+    <div id="resultCard" class="mt-10 card-material p-6 border border-[#E5E7EB] hidden">
+      <h3 class="text-xl font-bold text-[#202124] flex items-center gap-2"><i data-lucide="badge-check" class="text-[#34A853]"></i> Keputusan</h3>
+      <div id="resultContent" class="mt-4 space-y-3 text-[#202124]"></div>
+    </div>
+
+    <!-- step by step -->
+    <div id="stepsContainer" class="mt-8 hidden">
+      <h4 class="font-bold text-lg flex items-center gap-2"><i data-lucide="list-steps" class="text-[#FBBC05]"></i> Langkah Pengiraan</h4>
+      <div id="stepsList" class="mt-3 space-y-2"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== LEARNING SECTION ====== -->
+<section class="px-4 md:px-12 max-w-6xl mx-auto pb-20">
+  <div class="grid md:grid-cols-3 gap-6">
+    <div class="card-material p-6 flex flex-col items-start hover:shadow-lg transition-all">
+      <span class="text-3xl mb-3">📚</span>
+      <h5 class="font-bold text-lg">Cara Membaca Kod Warna</h5>
+      <p class="text-sm text-[#3C4043] mt-1">Setiap warna mewakili digit, pengganda dan toleransi.</p>
+    </div>
+    <div class="card-material p-6 flex flex-col items-start hover:shadow-lg transition-all">
+      <span class="text-3xl mb-3">💡</span>
+      <h5 class="font-bold text-lg">Tips Elektronik</h5>
+      <p class="text-sm text-[#3C4043] mt-1">Perhatikan jalur emas atau perak untuk toleransi.</p>
+    </div>
+    <div class="card-material p-6 flex flex-col items-start hover:shadow-lg transition-all">
+      <span class="text-3xl mb-3">🧪</span>
+      <h5 class="font-bold text-lg">Contoh Pengiraan</h5>
+      <p class="text-sm text-[#3C4043] mt-1">Merah-Ungu-Merah-Emas = 2.7kΩ ±5%</p>
+    </div>
+  </div>
+</section>
+
+<!-- ====== TOAST ====== -->
+<div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-[#202124] text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 max-w-md w-full">
+  <i data-lucide="alert-triangle" class="text-[#FBBC05] w-6 h-6"></i>
+  <span id="toastMessage" class="font-medium">Sila lengkapkan Band 1, Band 2 dan Band 3.</span>
+</div>
+
+<script>
+  // ========== DATA ==========
+  const COLOR_MAP = {
+    'Hitam': { digit: 0, multiplier: 1, color: '#000000' },
+    'Coklat': { digit: 1, multiplier: 10, color: '#8B4513' },
+    'Merah': { digit: 2, multiplier: 100, color: '#D32F2F' },
+    'Oren': { digit: 3, multiplier: 1000, color: '#FF6F00' },
+    'Kuning': { digit: 4, multiplier: 10000, color: '#FBC02D' },
+    'Hijau': { digit: 5, multiplier: 100000, color: '#2E7D32' },
+    'Biru': { digit: 6, multiplier: 1000000, color: '#1565C0' },
+    'Ungu': { digit: 7, multiplier: 10000000, color: '#6A1B9A' },
+    'Kelabu': { digit: 8, multiplier: 100000000, color: '#9E9E9E' },
+    'Putih': { digit: 9, multiplier: 1000000000, color: '#F5F5F5' }
+  };
+  const TOLERANCE_MAP = {
+    'Emas': { value: 5, color: '#D4AF37' },
+    'Perak': { value: 10, color: '#B0B0B0' },
+    'Tiada': { value: 20, color: 'transparent' }
+  };
+
+  const BAND1_NAMES = ['Hitam','Coklat','Merah','Oren','Kuning','Hijau','Biru','Ungu','Kelabu','Putih'];
+  const BAND2_NAMES = ['Hitam','Coklat','Merah','Oren','Kuning','Hijau','Biru','Ungu','Kelabu','Putih'];
+  const BAND3_NAMES = ['Hitam','Coklat','Merah','Oren','Kuning','Hijau','Biru','Ungu','Kelabu','Putih'];
+  const BAND4_NAMES = ['Emas','Perak','Tiada'];
+
+  // state
+  let selected = { band1: null, band2: null, band3: null, band4: 'Tiada' };
+
+  // ========== RENDER CHIPS ==========
+  function renderChips(containerId, names, bandKey, isBand4 = false) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    names.forEach(name => {
+      const chip = document.createElement('span');
+      chip.className = 'color-chip';
+      if (selected[bandKey] === name) chip.classList.add('active');
+      const color = isBand4 ? (TOLERANCE_MAP[name]?.color || '#ccc') : COLOR_MAP[name]?.color || '#ccc';
+      chip.innerHTML = `<span class="dot" style="background:${color};"></span> ${name}`;
+      chip.dataset.value = name;
+      chip.addEventListener('click', () => {
+        selected[bandKey] = name;
+        // reset active
+        container.querySelectorAll('.color-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        updatePreview();
+      });
+      container.appendChild(chip);
+    });
+  }
+
+  // ========== UPDATE PREVIEW ==========
+  function updatePreview() {
+    const b1 = selected.band1;
+    const b2 = selected.band2;
+    const b3 = selected.band3;
+    const b4 = selected.band4;
+
+    document.getElementById('band1').style.fill = b1 ? COLOR_MAP[b1]?.color : '#d4b68a';
+    document.getElementById('band2').style.fill = b2 ? COLOR_MAP[b2]?.color : '#d4b68a';
+    document.getElementById('band3').style.fill = b3 ? COLOR_MAP[b3]?.color : '#d4b68a';
+    // band4: if Tiada -> transparent
+    if (b4 === 'Tiada' || !b4) {
+      document.getElementById('band4').style.fill = 'transparent';
+    } else {
+      document.getElementById('band4').style.fill = TOLERANCE_MAP[b4]?.color || '#ccc';
+    }
+  }
+
+  // ========== TOAST ==========
+  function showToast(msg, type = 'warning') {
+    const toast = document.getElementById('toast');
+    const msgEl = document.getElementById('toastMessage');
+    msgEl.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  // ========== CALCULATE ==========
+  function calculateResistance() {
+    const b1 = selected.band1;
+    const b2 = selected.band2;
+    const b3 = selected.band3;
+    if (!b1 || !b2 || !b3) {
+      showToast('⚠️ Sila lengkapkan Band 1, Band 2 dan Band 3 sebelum membuat pengiraan.');
+      return null;
+    }
+    const digit1 = COLOR_MAP[b1].digit;
+    const digit2 = COLOR_MAP[b2].digit;
+    const multiplier = COLOR_MAP[b3].multiplier;
+    const rawValue = (digit1 * 10 + digit2) * multiplier;
+    const tolerance = TOLERANCE_MAP[selected.band4 || 'Tiada']?.value || 20;
+    return { digit1, digit2, multiplier, rawValue, tolerance, band1: b1, band2: b2, band3: b3, band4: selected.band4 || 'Tiada' };
+  }
+
+  function formatResistance(value) {
+    if (value >= 1e6) return { val: value/1e6, unit: 'MΩ' };
+    if (value >= 1e3) return { val: value/1e3, unit: 'kΩ' };
+    return { val: value, unit: 'Ω' };
+  }
+
+  function renderResult() {
+    const result = calculateResistance();
+    if (!result) return;
+    const { rawValue, tolerance, digit1, digit2, multiplier, band1, band2, band3, band4 } = result;
+    const formatted = formatResistance(rawValue);
+    const scientific = rawValue.toExponential(2);
+
+    // result card
+    document.getElementById('resultCard').classList.remove('hidden');
+    const content = document.getElementById('resultContent');
+    content.innerHTML = `
+      <div class="grid sm:grid-cols-2 gap-2 text-base">
+        <div><span class="text-[#5F6368]">Nilai:</span> <span class="font-bold text-xl">${formatted.val} ${formatted.unit}</span></div>
+        <div><span class="text-[#5F6368]">Toleransi:</span> <span class="font-semibold">±${tolerance}%</span></div>
+        <div><span class="text-[#5F6368]">Scientific:</span> <span class="font-mono">${scientific}</span></div>
+        <div><span class="text-[#5F6368]">Unit:</span> ${formatted.unit}</div>
+      </div>
+    `;
+
+    // steps
+    const stepsContainer = document.getElementById('stepsContainer');
+    stepsContainer.classList.remove('hidden');
+    const list = document.getElementById('stepsList');
+    const steps = [
+      { icon: '1', label: 'Band 1', detail: `${band1} = Digit ${digit1}` },
+      { icon: '2', label: 'Band 2', detail: `${band2} = Digit ${digit2}` },
+      { icon: '3', label: 'Band 3', detail: `${band3} = ×${multiplier}` },
+      { icon: '4', label: 'Kira', detail: `${digit1}${digit2} × ${multiplier} = ${rawValue}Ω` },
+      { icon: '5', label: 'Tukar unit', detail: `${rawValue}Ω = ${formatted.val} ${formatted.unit}` },
+      { icon: '6', label: 'Toleransi', detail: `±${tolerance}%` }
+    ];
+    list.innerHTML = steps.map((s, i) => `
+      <div class="flex items-center gap-3 p-2 rounded-xl bg-[#F8FAFD]">
+        <span class="step-icon">${s.icon}</span>
+        <div><span class="font-medium">${s.label}</span> <span class="text-[#3C4043]">${s.detail}</span></div>
+      </div>
+    `).join('');
+
+    // GSAP count animation (simple)
+    gsap.fromTo('#resultContent .font-bold', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, stagger: 0.1 });
+    gsap.fromTo('#stepsList .step-icon', { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, stagger: 0.08 });
+  }
+
+  // ========== RESET ==========
+  function resetForm() {
+    selected = { band1: null, band2: null, band3: null, band4: 'Tiada' };
+    ['band1Container','band2Container','band3Container','band4Container'].forEach(id => {
+      document.getElementById(id).querySelectorAll('.color-chip').forEach(c => c.classList.remove('active'));
+    });
+    // reset band4 to Tiada active
+    document.querySelector('#band4Container .color-chip[data-value="Tiada"]')?.classList.add('active');
+    updatePreview();
+    document.getElementById('resultCard').classList.add('hidden');
+    document.getElementById('stepsContainer').classList.add('hidden');
+    showToast('🔄 Borang telah direset', 'info');
+  }
+
+  // ========== INIT ==========
+  function init() {
+    // set default band4 Tiada
+    selected.band4 = 'Tiada';
+    renderChips('band1Container', BAND1_NAMES, 'band1');
+    renderChips('band2Container', BAND2_NAMES, 'band2');
+    renderChips('band3Container', BAND3_NAMES, 'band3');
+    renderChips('band4Container', BAND4_NAMES, 'band4', true);
+    // set active Tiada for band4
+    document.querySelector('#band4Container .color-chip[data-value="Tiada"]')?.classList.add('active');
+    updatePreview();
+
+    // event listeners
+    document.getElementById('calculateBtn').addEventListener('click', renderResult);
+    document.getElementById('resetBtn').addEventListener('click', resetForm);
+
+    // lucide icons
+    lucide.createIcons();
+
+    // GSAP entrance animation
+    gsap.from('.card-material', { opacity: 0, y: 40, duration: 0.8, stagger: 0.15, ease: 'power2.out' });
+    gsap.from('.floating-resistor', { opacity: 0, scale: 0.9, duration: 0.9, ease: 'back.out(1.2)' });
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
