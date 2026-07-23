@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartConvert – Binary Number Converter</title>
+  <!-- Google Font Poppins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- GSAP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    * { font-family: 'Poppins', sans-serif; }
+    body { background: linear-gradient(145deg, #f0f7ff 0%, #e6f0fa 100%); transition: background 0.3s, color 0.3s; }
+    .dark body { background: linear-gradient(145deg, #0b1a2e, #0f1f33); color: #eef4ff; }
+    
+    .glass { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 20px 40px rgba(0,20,50,0.08); }
+    .dark .glass { background: rgba(20, 30, 50, 0.6); border-color: rgba(255,255,255,0.1); }
+    
+    .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 24px 48px rgba(37, 99, 235, 0.15); }
+    
+    .bit-box { transition: all 0.2s; cursor: default; }
+    .bit-box:hover { transform: scale(1.08); background: #2563EB; color: white; }
+    
+    .step-card { border-left: 4px solid #F59E0B; background: rgba(255,255,255,0.5); padding: 12px 16px; border-radius: 12px; margin-bottom: 6px; }
+    .dark .step-card { background: rgba(20,30,50,0.5); }
+    
+    .floating-bits { position: absolute; font-weight: 700; opacity: 0.12; pointer-events: none; }
+    .dark .floating-bits { opacity: 0.08; }
+    
+    .btn-primary { background: #2563EB; color: white; padding: 10px 28px; border-radius: 60px; font-weight: 600; transition: all 0.2s; border: none; cursor: pointer; }
+    .btn-primary:hover { background: #1d4ed8; transform: scale(0.97); box-shadow: 0 12px 24px rgba(37,99,235,0.3); }
+    
+    .btn-accent { background: #F59E0B; color: #0b1a2e; padding: 10px 28px; border-radius: 60px; font-weight: 600; transition: all 0.2s; border: none; cursor: pointer; }
+    .btn-accent:hover { background: #d97706; transform: scale(0.97); }
+    
+    .input-base { background: rgba(255,255,255,0.7); border: 1px solid #cbd5e1; border-radius: 40px; padding: 12px 20px; width: 100%; outline: none; }
+    .input-base:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
+    .dark .input-base { background: rgba(30,45,70,0.5); border-color: #334155; color: #eef4ff; }
+    
+    .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: 12px; }
+    .result-item { background: rgba(255, 255, 255, 0.7); border-radius: 20px; padding: 16px 8px; text-align: center; border: 1px solid rgba(0,0,0,0.05); }
+    .dark .result-item { background: rgba(30, 45, 70, 0.7); border-color: rgba(255,255,255,0.05); }
+    .result-item .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+    .result-item .value-decimal { color: #0b1a2e; }
+    .dark .result-item .value-decimal { color: #ffffff; }
+    .result-item .value-binary { color: #2563EB; }
+    .dark .result-item .value-binary { color: #60A5FA; }
+    .result-item .value-octal { color: #F59E0B; }
+    .dark .result-item .value-octal { color: #FBBF24; }
+    .result-item .value-hex { color: #22C55E; }
+    .dark .result-item .value-hex { color: #4ADE80; }
+    .result-item .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; font-weight: 600; }
+    .dark .result-item .label { color: #94a3b8; }
+    
+    .formula-box { background: rgba(37,99,235,0.04); border-radius: 28px; padding: 16px 20px; border: 1px dashed #2563EB40; }
+    .dark .formula-box { background: rgba(37,99,235,0.08); border-color: #2563EB30; }
+    
+    .history-row { border-bottom: 1px solid #e2e8f0; padding: 10px 0; display: flex; flex-wrap: wrap; justify-content: space-between; font-size: 14px; }
+    .dark .history-row { border-color: #2d3a5a; }
+    
+    .toggle-dark { background: #e2e8f0; width: 48px; height: 26px; border-radius: 40px; display: flex; align-items: center; padding: 2px; cursor: pointer; transition: 0.2s; }
+    .dark .toggle-dark { background: #334155; }
+    .toggle-dot { width: 22px; height: 22px; background: white; border-radius: 50%; transition: 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .dark .toggle-dot { transform: translateX(22px); background: #facc15; }
+    
+    .quiz-option { padding: 8px 16px; border-radius: 12px; border: 2px solid #e2e8f0; cursor: pointer; transition: 0.2s; }
+    .quiz-option:hover { border-color: #2563EB; background: rgba(37,99,235,0.05); }
+    .dark .quiz-option { border-color: #334155; }
+    .dark .quiz-option:hover { border-color: #3B82F6; }
+    .ad-box { background: rgba(255,255,255,0.5); border-radius: 16px; min-height: 80px; display: flex; align-items: center; justify-content: center; color: #94A3B8; font-size: 0.75rem; border: 1px dashed #CBD5E1; }
+    .aff-item { background: rgba(255,255,255,0.6); border-radius: 16px; padding: 12px; transition: all 0.2s; border: 1px solid rgba(0,0,0,0.04); }
+    .aff-item:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(0,0,0,0.06); }
+    .donate-btn-sm { background: linear-gradient(135deg, #FF6B6B, #EE5A24); transition: all 0.2s; }
+    .donate-btn-sm:hover { transform: scale(1.03); box-shadow: 0 8px 20px rgba(238,90,36,0.3); }
+
+    /* FIX: Hero title - Smart kekal biru, Convert putih dalam dark mode */
+    .hero-title { color: #0b1a2e; }
+    .dark .hero-title { color: #ffffff; }
+    .hero-title .smart { color: #2563EB; }
+    .dark .hero-title .smart { color: #60A5FA; }
+
+    /* FIX: Navigation links - jelas dalam kedua-dua mod */
+    .nav-link { 
+      color: #0b1a2e; 
+      font-weight: 500;
+      transition: color 0.2s;
+      text-decoration: none;
+      padding: 4px 8px;
+      border-radius: 8px;
+    }
+    .dark .nav-link { 
+      color: #e2e8f0; 
+    }
+    .nav-link:hover { 
+      color: #2563EB; 
+    }
+    .dark .nav-link:hover { 
+      color: #60A5FA; 
+      background: rgba(37,99,235,0.1);
+    }
+  </style>
+</head>
+<body class="antialiased">
+
+  <!-- Navigation -->
+  <nav class="glass fixed top-0 left-0 w-full z-50 px-6 py-3 flex items-center justify-between flex-wrap gap-3 shadow-sm">
+    <div class="flex items-center gap-2">
+      <a href="../index.html" class="text-2xl font-bold text-[#2563EB]">SmartConvert</a>
+      <span class="text-xs bg-[#F59E0B] px-3 py-0.5 rounded-full font-semibold text-white">EdTech</span>
+    </div>
+    <!-- FIX: Navigation links dengan warna yang jelas -->
+    <div class="flex items-center gap-2 text-sm font-medium">
+      <a href="../index.html" class="nav-link">Home</a>
+      <a href="#converter" class="nav-link">Converter</a>
+      <a href="#learn" class="nav-link">Learn</a>
+      <div class="toggle-dark ml-2" onclick="toggleDark()">
+        <div class="toggle-dot"></div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="pt-28 pb-12 px-6 relative overflow-hidden">
+    <div class="floating-bits text-6xl top-20 left-10">1 0 1 1 0</div>
+    <div class="floating-bits text-5xl bottom-10 right-10">0 1 1 0 1</div>
+    <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12">
+      <div class="flex-1 space-y-4">
+        <h1 class="text-5xl md:text-6xl font-extrabold leading-tight hero-title">
+          <span class="smart">Smart</span><span>Convert</span>
+        </h1>
+        <p class="text-xl text-slate-600 dark:text-slate-300 max-w-md">Learn Number Systems by Converting, Understanding, and Practicing.</p>
+        <div class="flex flex-wrap gap-4 pt-2">
+          <button class="btn-primary flex items-center gap-2"><i data-lucide="play" class="w-5 h-5"></i> Start Learning</button>
+          <button class="btn-accent flex items-center gap-2"><i data-lucide="arrow-right" class="w-5 h-5"></i> Open Converter</button>
+        </div>
+      </div>
+      <div class="flex-1 flex justify-center relative">
+        <div class="grid grid-cols-4 gap-1 p-6 bg-[#2563EB10] rounded-3xl glass border border-[#2563EB20]">
+          <span class="text-4xl font-mono font-bold text-[#2563EB]">1</span>
+          <span class="text-4xl font-mono font-bold text-[#F59E0B]">0</span>
+          <span class="text-4xl font-mono font-bold text-[#22C55E]">1</span>
+          <span class="text-4xl font-mono font-bold text-[#3B82F6]">1</span>
+          <span class="text-4xl font-mono font-bold text-[#F59E0B]">0</span>
+          <span class="text-4xl font-mono font-bold text-[#2563EB]">1</span>
+          <span class="text-4xl font-mono font-bold text-[#22C55E]">0</span>
+          <span class="text-4xl font-mono font-bold text-[#3B82F6]">1</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ad Banner -->
+  <div class="px-6 max-w-6xl mx-auto">
+    <div class="ad-box w-full" id="ad-banner">
+      <span class="text-gray-300">Ad Space</span>
+    </div>
+  </div>
+
+  <!-- Converter Section -->
+  <section id="converter" class="px-6 py-12 max-w-6xl mx-auto">
+    <div class="glass rounded-3xl p-6 md:p-10 card-hover">
+      <h2 class="text-3xl font-bold flex items-center gap-2 mb-6"><i data-lucide="calculator" class="w-8 h-8 text-[#2563EB]"></i> Main Converter</h2>
+      <div class="flex flex-col md:flex-row gap-4 items-end">
+        <div class="flex-1 w-full">
+          <label class="block text-sm font-medium mb-1">Enter Number</label>
+          <input id="inputNumber" type="text" placeholder="e.g. 101101" class="input-base" value="101101">
+        </div>
+        <div class="w-full md:w-48">
+          <label class="block text-sm font-medium mb-1">Input Base</label>
+          <select id="inputBase" class="input-base">
+            <option value="binary">Binary (2)</option>
+            <option value="decimal" selected>Decimal (10)</option>
+            <option value="octal">Octal (8)</option>
+            <option value="hexadecimal">Hexadecimal (16)</option>
+          </select>
+        </div>
+        <button id="convertBtn" class="btn-primary w-full md:w-auto flex items-center justify-center gap-2"><i data-lucide="rotate-cw" class="w-5 h-5"></i> Convert</button>
+      </div>
+
+      <!-- Result Cards -->
+      <div id="resultArea" class="mt-8 result-grid">
+        <div class="result-item">
+          <span class="label">Decimal</span>
+          <div id="resDecimal" class="value value-decimal">45</div>
+        </div>
+        <div class="result-item">
+          <span class="label">Binary</span>
+          <div id="resBinary" class="value value-binary">101101</div>
+        </div>
+        <div class="result-item">
+          <span class="label">Octal</span>
+          <div id="resOctal" class="value value-octal">55</div>
+        </div>
+        <div class="result-item">
+          <span class="label">Hex</span>
+          <div id="resHex" class="value value-hex">2D</div>
+        </div>
+      </div>
+
+      <!-- Step-by-Step -->
+      <div id="stepsContainer" class="mt-8 space-y-2"></div>
+
+      <!-- Binary Visualizer -->
+      <div id="visualizer" class="mt-6 flex flex-wrap gap-2"></div>
+
+      <!-- Error msg -->
+      <div id="errorMsg" class="text-red-500 text-sm mt-2 font-medium"></div>
+    </div>
+  </section>
+
+  <!-- Learn Section -->
+  <section id="learn" class="px-6 py-8 max-w-6xl mx-auto">
+    <h2 class="text-3xl font-bold flex items-center gap-2 mb-6"><i data-lucide="book-open" class="w-8 h-8 text-[#F59E0B]"></i> Number System Info</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="glass p-5 rounded-2xl card-hover"><span class="text-2xl font-bold text-[#2563EB]">Decimal</span><p class="text-sm">Base 10 · Digits 0–9 · Used by humans.</p></div>
+      <div class="glass p-5 rounded-2xl card-hover"><span class="text-2xl font-bold text-[#22C55E]">Binary</span><p class="text-sm">Base 2 · Digits 0,1 · Used by computers.</p></div>
+      <div class="glass p-5 rounded-2xl card-hover"><span class="text-2xl font-bold text-[#F59E0B]">Octal</span><p class="text-sm">Base 8 · Digits 0–7 · Used in computing.</p></div>
+      <div class="glass p-5 rounded-2xl card-hover"><span class="text-2xl font-bold text-[#3B82F6]">Hex</span><p class="text-sm">Base 16 · 0–9 A–F · Programming.</p></div>
+    </div>
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="formula-box"><span class="font-bold">Binary → Decimal</span> <span class="font-mono text-sm">Σ(bit × 2^position)</span></div>
+      <div class="formula-box"><span class="font-bold">Decimal → Binary</span> <span class="font-mono text-sm">Repeated Division by 2</span></div>
+      <div class="formula-box"><span class="font-bold">Decimal → Octal</span> <span class="font-mono text-sm">Repeated Division by 8</span></div>
+      <div class="formula-box"><span class="font-bold">Decimal → Hex</span> <span class="font-mono text-sm">Repeated Division by 16</span></div>
+    </div>
+  </section>
+
+  <!-- Affiliate -->
+  <section class="px-6 max-w-6xl mx-auto pb-6">
+    <div class="ad-box mb-4" id="ad-in-article">
+      <span class="text-gray-300">Ad Space</span>
+    </div>
+    <div class="text-center">
+      <h3 class="text-lg font-bold flex items-center justify-center gap-2">📚 Recommended Resources</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+        <a href="#" target="_blank" rel="noopener" class="aff-item block text-left">
+          <span class="text-2xl block">📚</span>
+          <div class="font-semibold text-sm mt-1">Buku Elektronik Asas</div>
+          <div class="text-xs text-gray-400">Shopee · RM25</div>
+        </a>
+        <a href="#" target="_blank" rel="noopener" class="aff-item block text-left">
+          <span class="text-2xl block">💻</span>
+          <div class="font-semibold text-sm mt-1">Laptop Pelajar</div>
+          <div class="text-xs text-gray-400">Lazada · RM1599</div>
+        </a>
+        <a href="#" target="_blank" rel="noopener" class="aff-item block text-left">
+          <span class="text-2xl block">🧮</span>
+          <div class="font-semibold text-sm mt-1">Scientific Calculator</div>
+          <div class="text-xs text-gray-400">Shopee · RM45</div>
+        </a>
+        <a href="#" target="_blank" rel="noopener" class="aff-item block text-left">
+          <span class="text-2xl block">🔧</span>
+          <div class="font-semibold text-sm mt-1">Kit Elektronik Arduino</div>
+          <div class="text-xs text-gray-400">Lazada · RM89</div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Donation -->
+  <section class="text-center px-6 max-w-6xl mx-auto pb-8">
+      <a href="https://sociabuzz.com/iezz/tribe" target="_blank" class="donate-btn-sm inline-flex items-center gap-2 text-white px-6 py-3 rounded-full font-semibold shadow-lg">
+      <i data-lucide="heart" class="w-5 h-5"></i> Support SmartSim ❤️
+    </a>
+  </section>
+
+  <!-- Floating Donate -->
+  <a href="https://sociabuzz.com/iezz/tribe" target="_blank" class="fixed bottom-6 right-6 z-50 donate-btn-sm text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg" title="Support SmartSim ❤️">
+    <i data-lucide="heart" class="w-6 h-6"></i>
+  </a>
+
+  <!-- Footer -->
+  <footer class="text-center text-sm text-slate-500 dark:text-slate-400 py-8 border-t border-slate-200 dark:border-slate-700 mt-8">
+    <span class="font-bold text-[#2563EB]">SmartConvert</span> · Learn Number Systems · Created for Educational Purpose
+  </footer>
+
+  <script>
+    // --- DARK MODE ---
+    function toggleDark() { document.documentElement.classList.toggle('dark'); }
+
+    // --- LUCIDE ---
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+    });
+
+    // --- CONVERTER LOGIC ---
+    const inputNum = document.getElementById('inputNumber');
+    const inputBase = document.getElementById('inputBase');
+    const convertBtn = document.getElementById('convertBtn');
+    const resDecimal = document.getElementById('resDecimal');
+    const resBinary = document.getElementById('resBinary');
+    const resOctal = document.getElementById('resOctal');
+    const resHex = document.getElementById('resHex');
+    const stepsDiv = document.getElementById('stepsContainer');
+    const visualizer = document.getElementById('visualizer');
+    const errorMsg = document.getElementById('errorMsg');
+
+    function getBaseValue(base) {
+      return { binary: 2, decimal: 10, octal: 8, hexadecimal: 16 }[base] || 10;
+    }
+
+    function validateInput(str, base) {
+      const patterns = { 
+        binary: /^[01]+$/, 
+        decimal: /^\d+$/, 
+        octal: /^[0-7]+$/, 
+        hexadecimal: /^[0-9A-Fa-f]+$/ 
+      };
+      return patterns[base]?.test(str) || false;
+    }
+
+    function convertNumber() {
+      const num = inputNum.value.trim();
+      const baseKey = inputBase.value;
+      const base = getBaseValue(baseKey);
+      errorMsg.textContent = '';
+      stepsDiv.innerHTML = '';
+      visualizer.innerHTML = '';
+
+      if (!num) { 
+        errorMsg.textContent = 'Please enter a number.'; 
+        return; 
+      }
+      
+      if (!validateInput(num, baseKey)) {
+        errorMsg.textContent = `Invalid input for ${baseKey} (allowed: ${baseKey === 'binary' ? '0,1' : baseKey === 'octal' ? '0-7' : baseKey === 'hexadecimal' ? '0-9 A-F' : '0-9'})`;
+        return;
+      }
+
+      let decimal = parseInt(num, base);
+      if (isNaN(decimal)) { 
+        errorMsg.textContent = 'Conversion error.'; 
+        return; 
+      }
+
+      // Update results
+      resDecimal.textContent = decimal;
+      resBinary.textContent = decimal.toString(2);
+      resOctal.textContent = decimal.toString(8);
+      resHex.textContent = decimal.toString(16).toUpperCase();
+
+      // Steps (binary → decimal if input is binary)
+      if (baseKey === 'binary') {
+        let bits = num.split('').reverse();
+        let total = 0;
+        let html = '<div class="font-bold text-[#2563EB] mb-3">Binary → Decimal</div>';
+        bits.forEach((bit, i) => {
+          let val = parseInt(bit) * Math.pow(2, i);
+          total += val;
+          html += `<div class="step-card">${bit} × 2<sup>${i}</sup> = ${val}</div>`;
+        });
+        html += `<div class="p-3 bg-[#22C55E20] rounded-xl font-bold mt-2">Total = ${total}</div>`;
+        stepsDiv.innerHTML = html;
+        
+        // Visualizer
+        num.split('').forEach((bit, idx) => {
+          let box = document.createElement('div');
+          box.className = 'bit-box w-12 h-12 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center font-bold text-xl shadow-sm border border-slate-200 dark:border-slate-600';
+          box.textContent = bit;
+          let pos = num.length - 1 - idx;
+          box.title = `Position ${pos} · 2^${pos}`;
+          visualizer.appendChild(box);
+        });
+      } else {
+        stepsDiv.innerHTML = `<div class="p-4 bg-[#F59E0B20] rounded-xl">Converted to all bases. Select "Binary" as input to see step-by-step explanation.</div>`;
+      }
+
+      // Add to history
+      addHistory(num, baseKey, decimal);
+    }
+
+    // --- CONVERT ON LOAD ---
+    setTimeout(convertNumber, 100);
+
+    // --- EVENT LISTENERS ---
+    convertBtn.addEventListener('click', convertNumber);
+    inputNum.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') convertNumber();
+    });
+
+
+    // --- RECREATE ICONS AFTER DYNAMIC CONTENT ---
+    setTimeout(() => lucide.createIcons(), 500);
+  </script>
+</body>
+</html>

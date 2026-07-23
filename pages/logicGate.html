@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logic Gate Simulation · Modern Education</title>
+  <!-- Google Fonts: Poppins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind via CDN + custom base -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- GSAP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    * { font-family: 'Poppins', sans-serif; }
+    body {
+      background: linear-gradient(145deg, #f6f9fc 0%, #eef2f7 100%);
+      min-height: 100vh;
+    }
+    /* Glassmorphism base */
+    .glass {
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.5);
+      box-shadow: 0 20px 40px -12px rgba(0,0,0,0.1), 0 4px 18px rgba(0,0,0,0.02);
+    }
+    .glass-card {
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.7);
+      box-shadow: 0 12px 30px -8px rgba(37,99,235,0.08), 0 4px 12px rgba(0,0,0,0.02);
+      transition: all 0.25s ease;
+    }
+    .glass-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 24px 48px -12px rgba(37,99,235,0.18);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #2563EB, #7C3AED);
+      color: white;
+      border: none;
+      padding: 0.75rem 2rem;
+      border-radius: 60px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      box-shadow: 0 8px 20px -6px rgba(37,99,235,0.4);
+      transition: all 0.2s ease;
+    }
+    .btn-primary:hover {
+      transform: scale(1.02);
+      box-shadow: 0 12px 28px -6px rgba(37,99,235,0.5);
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid #2563EB;
+      color: #2563EB;
+      font-weight: 500;
+      border-radius: 60px;
+      padding: 0.6rem 1.6rem;
+      transition: all 0.2s ease;
+    }
+    .btn-outline:hover {
+      background: #2563EB;
+      color: white;
+      box-shadow: 0 8px 20px -8px #2563EB;
+    }
+    .logic-input {
+      width: 56px;
+      height: 56px;
+      border-radius: 40px;
+      background: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+      border: 2px solid #e2e8f0;
+      transition: all 0.15s ease;
+      font-weight: 700;
+      font-size: 1.3rem;
+      color: #1e293b;
+    }
+    .logic-input.active {
+      border-color: #2563EB;
+      background: #eff6ff;
+      box-shadow: 0 0 0 4px rgba(37,99,235,0.15);
+    }
+    .led {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: inline-block;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+    }
+    .led-green { background: #22c55e; box-shadow: 0 0 20px #22c55e88; }
+    .led-red { background: #ef4444; box-shadow: 0 0 20px #ef444488; }
+    .gate-symbol {
+      background: white;
+      border-radius: 24px;
+      padding: 1rem 1.5rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      border: 1px solid #e9edf4;
+    }
+    .truth-table td {
+      padding: 0.4rem 0.8rem;
+      border-bottom: 1px solid #eef2f6;
+    }
+    .highlight-row {
+      background: #dbeafe;
+      border-radius: 12px;
+    }
+    .footer a { color: #64748b; transition: color 0.2s; }
+    .footer a:hover { color: #2563EB; }
+    /* dark mode overrides */
+    .dark body { background: #0b1120; }
+    .dark .glass { background: rgba(20,30,50,0.7); backdrop-filter: blur(16px); border-color: rgba(255,255,255,0.08); }
+    .dark .glass-card { background: rgba(20,30,50,0.6); border-color: rgba(255,255,255,0.05); }
+    .dark .logic-input { background: #1e293b; border-color: #334155; color: #f1f5f9; }
+    .dark .logic-input.active { background: #1e3a5f; border-color: #3b82f6; }
+    .dark .gate-symbol { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+    .dark .truth-table td { border-color: #1e293b; }
+    .dark .highlight-row { background: #1e3a5f; }
+    .dark .btn-outline { color: #94a3b8; border-color: #475569; }
+    .dark .btn-outline:hover { background: #2563EB; color: white; }
+    .dark .footer a { color: #94a3b8; }
+    .dark .footer a:hover { color: #60a5fa; }
+    .ad-box { background: rgba(255,255,255,0.5); border-radius: 16px; min-height: 70px; display: flex; align-items: center; justify-content: center; color: #94A3B8; font-size: 0.75rem; border: 1px dashed #CBD5E1; }
+    .aff-item { background: rgba(255,255,255,0.6); border-radius: 16px; padding: 12px; transition: all 0.2s; border: 1px solid rgba(0,0,0,0.04); }
+    .aff-item:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(0,0,0,0.06); }
+    .donate-btn-sm { background: linear-gradient(135deg, #FF6B6B, #EE5A24); transition: all 0.2s; }
+    .donate-btn-sm:hover { transform: scale(1.03); box-shadow: 0 8px 20px rgba(238,90,36,0.3); }
+  </style>
+</head>
+<body class="transition-colors duration-300 ease-in-out">
+  <div id="app" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Header / Nav -->
+    <nav class="glass rounded-3xl px-6 py-4 flex flex-wrap items-center justify-between mb-8">
+      <div class="flex items-center gap-3">
+        <a href="../index.html" class="text-2xl font-bold bg-gradient-to-r from-primary-blue to-secondary-purple bg-clip-text text-transparent">LogicSim</a>
+        <span class="text-xs font-medium text-slate-500 bg-white/60 px-3 py-1 rounded-full">v2</span>
+      </div>
+      <div class="flex items-center gap-3 flex-wrap">
+        <button id="darkToggle" class="p-2 rounded-full bg-white/70 hover:bg-white text-slate-600 transition-all"><i data-lucide="moon" class="w-5 h-5"></i></button>
+        <button id="resetSim" class="p-2 rounded-full bg-white/70 hover:bg-white text-slate-600 transition-all"><i data-lucide="rotate-ccw" class="w-5 h-5"></i></button>
+        <button id="randomInput" class="p-2 rounded-full bg-white/70 hover:bg-white text-slate-600 transition-all"><i data-lucide="shuffle" class="w-5 h-5"></i></button>
+        <button id="soundToggle" class="p-2 rounded-full bg-white/70 hover:bg-white text-slate-600 transition-all"><i data-lucide="volume-2" class="w-5 h-5"></i></button>
+      </div>
+    </nav>
+
+    <!-- Hero + Feature Cards (grid) -->
+    <section class="glass rounded-3xl p-8 md:p-12 mb-10 relative overflow-hidden">
+      <div class="grid md:grid-cols-5 gap-8 items-center">
+        <div class="md:col-span-3 space-y-4">
+          <h1 class="text-4xl md:text-6xl font-extrabold leading-[1.1] tracking-tight">Logic Gate <br><span class="bg-gradient-to-r from-[#2563EB] to-[#7C3AED] bg-clip-text text-transparent">Simulation</span></h1>
+          <p class="text-lg md:text-xl text-slate-600 max-w-xl">Learn Digital Logic Through Interactive Simulation</p>
+          <div class="flex flex-wrap gap-4 pt-2">
+            <button id="startSimBtn" class="btn-primary flex items-center gap-2"><i data-lucide="play" class="w-5 h-5"></i> Start Simulation</button>
+            <button class="btn-outline flex items-center gap-2"><i data-lucide="info" class="w-4 h-4"></i> About</button>
+          </div>
+        </div>
+        <div class="md:col-span-2 flex justify-center">
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-white/70 p-3 rounded-2xl shadow-sm"><i data-lucide="binary" class="w-10 h-10 text-[#2563EB]"></i></div>
+            <div class="bg-white/70 p-3 rounded-2xl shadow-sm"><i data-lucide="cpu" class="w-10 h-10 text-[#7C3AED]"></i></div>
+            <div class="bg-white/70 p-3 rounded-2xl shadow-sm"><i data-lucide="circuit" class="w-10 h-10 text-[#06B6D4]"></i></div>
+            <div class="bg-white/70 p-3 rounded-2xl shadow-sm"><i data-lucide="lightbulb" class="w-10 h-10 text-amber-500"></i></div>
+          </div>
+        </div>
+      </div>
+      <!-- feature cards under hero -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+        <div class="glass-card p-4 rounded-2xl text-center"><i data-lucide="arrow-left-right" class="w-6 h-6 text-[#2563EB] mx-auto mb-1"></i><span class="text-sm font-medium">AND, OR, NOT</span></div>
+        <div class="glass-card p-4 rounded-2xl text-center"><i data-lucide="table" class="w-6 h-6 text-[#7C3AED] mx-auto mb-1"></i><span class="text-sm font-medium">Truth Tables</span></div>
+        <div class="glass-card p-4 rounded-2xl text-center"><i data-lucide="zap" class="w-6 h-6 text-[#06B6D4] mx-auto mb-1"></i><span class="text-sm font-medium">Real-time</span></div>
+        <div class="glass-card p-4 rounded-2xl text-center"><i data-lucide="book-open" class="w-6 h-6 text-emerald-500 mx-auto mb-1"></i><span class="text-sm font-medium">Learning Module</span></div>
+      </div>
+    </section>
+
+    <!-- Main Simulation Area -->
+    <div class="grid lg:grid-cols-3 gap-6 mb-10">
+      <!-- Left: Gate selection + I/O -->
+      <div class="lg:col-span-2 glass rounded-3xl p-6 space-y-6">
+        <div class="flex flex-wrap items-center gap-4">
+          <div class="gate-symbol"><i data-lucide="orbit" class="w-5 h-5 text-[#2563EB]"></i> <span id="currentGateLabel">AND</span></div>
+          <select id="gateSelect" class="bg-white/80 border border-white/60 rounded-full px-4 py-2 text-sm font-medium outline-none focus:ring-2 focus:ring-[#2563EB]">
+            <option value="AND">AND</option><option value="OR">OR</option><option value="NOT">NOT</option>
+            <option value="NAND">NAND</option><option value="NOR">NOR</option><option value="XOR">XOR</option><option value="XNOR">XNOR</option>
+          </select>
+          <div class="flex items-center gap-4 ml-auto">
+            <span class="text-sm font-medium">A</span>
+            <button id="inputA" class="logic-input" data-input="A">0</button>
+            <span class="text-sm font-medium">B</span>
+            <button id="inputB" class="logic-input" data-input="B">0</button>
+          </div>
+        </div>
+        <!-- Output display -->
+        <div class="flex flex-wrap items-center justify-between bg-white/40 p-4 rounded-2xl">
+          <div class="flex items-center gap-6">
+            <div><span class="text-xs text-slate-500">Output</span><div id="outputVal" class="text-2xl font-bold">0</div></div>
+            <div><span class="text-xs text-slate-500">LED</span><div id="ledIndicator" class="led led-red"></div></div>
+            <div><span class="text-xs text-slate-500">Expression</span><div id="boolExpr" class="font-mono text-sm bg-white/60 px-3 py-1 rounded-full">A · B</div></div>
+          </div>
+          <div class="flex gap-2">
+            <button id="copyTruthBtn" class="text-xs bg-white/70 px-3 py-1 rounded-full flex items-center gap-1"><i data-lucide="copy" class="w-3 h-3"></i> Copy TT</button>
+            <button id="exportPdfBtn" class="text-xs bg-white/70 px-3 py-1 rounded-full flex items-center gap-1"><i data-lucide="file-text" class="w-3 h-3"></i> PDF</button>
+          </div>
+        </div>
+        <!-- Animated signal flow (simple) -->
+        <div class="h-8 flex items-center justify-center gap-1 text-xs text-slate-400">
+          <span class="bg-blue-100 px-2 py-0.5 rounded-full">A</span> 
+          <span id="signalLine" class="w-12 h-0.5 bg-gradient-to-r from-[#2563EB] to-[#06B6D4] transition-all duration-300"></span>
+          <span class="bg-purple-100 px-2 py-0.5 rounded-full">B</span> 
+          <span class="w-12 h-0.5 bg-gradient-to-r from-[#7C3AED] to-[#06B6D4] transition-all duration-300"></span>
+          <span class="bg-cyan-100 px-2 py-0.5 rounded-full">→ OUT</span>
+        </div>
+      </div>
+
+      <!-- Right: Truth Table & quick info -->
+      <div class="glass rounded-3xl p-6">
+        <h3 class="font-semibold flex items-center gap-2"><i data-lucide="table" class="w-4 h-4"></i> Truth Table</h3>
+        <div id="truthTableContainer" class="mt-3 overflow-x-auto">
+          <table class="truth-table w-full text-sm">
+            <thead><tr class="text-slate-500"><th>A</th><th>B</th><th>Out</th></tr></thead>
+            <tbody id="truthBody"></tbody>
+          </table>
+        </div>
+        <div class="mt-4 text-xs text-slate-500 flex gap-4 flex-wrap">
+          <span><span class="inline-block w-3 h-3 bg-green-400 rounded-full mr-1"></span> 1</span>
+          <span><span class="inline-block w-3 h-3 bg-red-400 rounded-full mr-1"></span> 0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Learning Module + Circuit Diagram -->
+    <div class="grid md:grid-cols-2 gap-6 mb-10">
+      <div class="glass-card p-6 rounded-3xl">
+        <h3 class="font-semibold flex items-center gap-2"><i data-lucide="book-open" class="w-5 h-5 text-[#2563EB]"></i> Learning Module</h3>
+        <div id="learningContent" class="mt-3 space-y-2 text-sm text-slate-700">
+          <p><strong>AND</strong> – Output HIGH only if both inputs HIGH.</p>
+          <p class="bg-white/60 p-2 rounded-xl">Boolean: A · B</p>
+          <p class="text-xs">💡 Real-world: security systems, enable signals.</p>
+        </div>
+      </div>
+      <div class="glass-card p-6 rounded-3xl">
+        <h3 class="font-semibold flex items-center gap-2"><i data-lucide="circuit" class="w-5 h-5 text-[#7C3AED]"></i> Circuit Diagram</h3>
+        <div id="circuitDisplay" class="flex items-center justify-center h-24 bg-white/30 rounded-2xl border border-white/50">
+          <span class="font-mono text-2xl">&amp; (AND)</span>
+        </div>
+        <div class="flex gap-2 mt-3 text-xs text-slate-400 justify-center">
+          <span class="bg-blue-100 px-2 py-0.5 rounded-full">A</span>
+          <span class="text-slate-300">→</span>
+          <span class="bg-purple-100 px-2 py-0.5 rounded-full">B</span>
+          <span class="text-slate-300">→</span>
+          <span class="bg-cyan-100 px-2 py-0.5 rounded-full">Y</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ad In-Article -->
+    <div class="ad-box w-full mb-6" id="ad-in-article"> <span class="text-gray-300">Ad Space</span> </div>
+
+    <!-- Affiliate + Donation -->
+    <div class="grid md:grid-cols-4 gap-4 mb-6">
+      <div class="md:col-span-3">
+        <h4 class="font-semibold text-sm text-slate-500 mb-2">📚 Recommended</h4>
+        <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          <a href="#" target="_blank" rel="noopener" class="aff-item block text-left">
+            <span class="text-xl block">📚</span>
+            <div class="font-semibold text-xs mt-0.5">Buku Elektronik</div>
+          </a>
+          <a href="#" target="_blank" rel="noopener" class="aff-item block text-left">
+            <span class="text-xl block">💻</span>
+            <div class="font-semibold text-xs mt-0.5">Laptop Pelajar</div>
+          </a>
+          <a href="#" target="_blank" rel="noopener" class="aff-item block text-left">
+            <span class="text-xl block">🧮</span>
+            <div class="font-semibold text-xs mt-0.5">Kalkulator</div>
+          </a>
+          <a href="#" target="_blank" rel="noopener" class="aff-item block text-left">
+            <span class="text-xl block">🔧</span>
+            <div class="font-semibold text-xs mt-0.5">Arduino Kit</div>
+          </a>
+        </div>
+      </div>
+      <div class="flex items-end justify-center md:justify-end">
+        <a href="https://sociabuzz.com/iezz/tribe" target="_blank" class="donate-btn-sm inline-flex items-center gap-2 text-white px-5 py-3 rounded-full font-semibold shadow-lg text-sm">
+          <i data-lucide="heart" class="w-4 h-4"></i> Support ❤️
+        </a>
+      </div>
+    </div>
+
+    <!-- Floating Donate -->
+    <a href="https://sociabuzz.com/iezz/tribe" target="_blank" class="fixed bottom-6 right-6 z-50 donate-btn-sm text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg" title="Support SmartSim ❤️">
+      <i data-lucide="heart" class="w-6 h-6"></i>
+    </a>
+
+    <!-- Footer -->
+    <footer class="glass rounded-3xl px-6 py-6 flex flex-wrap justify-between items-center text-sm text-slate-500">
+      <span>© 2026 LogicSim — Modern Education</span>
+      <div class="flex gap-6 footer">
+        <a href="../index.html">Home</a><a href="#">About</a><a href="#">Docs</a>
+      </div>
+    </footer>
+  </div>
+  <script>
+    (function(){
+      // ----- Core state -----
+      let currentGate = 'AND';
+      let inputA = 0, inputB = 0;
+      let darkMode = false;
+      let soundOn = true;
+
+      // DOM refs
+      const gateSelect = document.getElementById('gateSelect');
+      const inputABtn = document.getElementById('inputA');
+      const inputBBtn = document.getElementById('inputB');
+      const outputVal = document.getElementById('outputVal');
+      const ledIndicator = document.getElementById('ledIndicator');
+      const boolExpr = document.getElementById('boolExpr');
+      const currentGateLabel = document.getElementById('currentGateLabel');
+      const truthBody = document.getElementById('truthBody');
+      const learningContent = document.getElementById('learningContent');
+      const circuitDisplay = document.getElementById('circuitDisplay');
+      const darkToggle = document.getElementById('darkToggle');
+      const resetSim = document.getElementById('resetSim');
+      const randomInput = document.getElementById('randomInput');
+      const soundToggle = document.getElementById('soundToggle');
+      const copyTruthBtn = document.getElementById('copyTruthBtn');
+      const exportPdfBtn = document.getElementById('exportPdfBtn');
+      const startSimBtn = document.getElementById('startSimBtn');
+
+      // ----- Logic functions -----
+      function computeGate(gate, a, b) {
+        switch(gate) {
+          case 'AND': return a & b;
+          case 'OR': return a | b;
+          case 'NOT': return a ^ 1;
+          case 'NAND': return (a & b) ^ 1;
+          case 'NOR': return (a | b) ^ 1;
+          case 'XOR': return a ^ b;
+          case 'XNOR': return (a ^ b) ^ 1;
+          default: return 0;
+        }
+      }
+      function getExpression(gate) {
+        const map = {
+          'AND':'A · B','OR':'A + B','NOT':'¬A','NAND':'¬(A · B)',
+          'NOR':'¬(A + B)','XOR':'A ⊕ B','XNOR':'¬(A ⊕ B)'
+        };
+        return map[gate] || 'A · B';
+      }
+      function getGateSymbol(gate) {
+        const sym = {
+          'AND':'& (AND)','OR':'≥1 (OR)','NOT':'1 (NOT)',
+          'NAND':'& with bubble','NOR':'≥1 with bubble',
+          'XOR':'=1 (XOR)','XNOR':'=1 with bubble'
+        };
+        return sym[gate] || 'AND';
+      }
+      function getLearning(gate) {
+        const data = {
+          'AND': { desc:'Output HIGH only if both inputs HIGH.', expr:'A · B', app:'Security systems, enable signals.' },
+          'OR': { desc:'Output HIGH if at least one input HIGH.', expr:'A + B', app:'Alarm systems, voting circuits.' },
+          'NOT': { desc:'Inverts the input (NOT A).', expr:'¬A', app:'Signal inversion, oscillators.' },
+          'NAND': { desc:'Output LOW only if both inputs HIGH (AND inverted).', expr:'¬(A · B)', app:'Universal gate, memory.' },
+          'NOR': { desc:'Output HIGH only if both inputs LOW (OR inverted).', expr:'¬(A + B)', app:'Universal gate, flip-flops.' },
+          'XOR': { desc:'Output HIGH if inputs are different.', expr:'A ⊕ B', app:'Adders, parity checkers.' },
+          'XNOR': { desc:'Output HIGH if inputs are same (XOR inverted).', expr:'¬(A ⊕ B)', app:'Comparators, error detection.' }
+        };
+        return data[gate] || data['AND'];
+      }
+
+      // ----- Update UI -----
+      function updateSimulation() {
+        const out = computeGate(currentGate, inputA, inputB);
+        outputVal.textContent = out;
+        ledIndicator.className = `led ${out ? 'led-green' : 'led-red'}`;
+        boolExpr.textContent = getExpression(currentGate);
+        currentGateLabel.textContent = currentGate;
+
+        // update input buttons
+        inputABtn.textContent = inputA;
+        inputABtn.classList.toggle('active', inputA===1);
+        inputBBtn.textContent = inputB;
+        inputBBtn.classList.toggle('active', inputB===1);
+
+        // truth table
+        renderTruthTable();
+
+        // learning
+        const learn = getLearning(currentGate);
+        learningContent.innerHTML = `<p><strong>${currentGate}</strong> – ${learn.desc}</p>
+          <p class="bg-white/60 p-2 rounded-xl font-mono">Boolean: ${learn.expr}</p>
+          <p class="text-xs">💡 ${learn.app}</p>`;
+        circuitDisplay.innerHTML = `<span class="font-mono text-2xl">${getGateSymbol(currentGate)}</span>`;
+
+        // signal animation (GSAP)
+        gsap.fromTo('#signalLine', { width: '8px', opacity:0.3 }, { width: '48px', opacity:1, duration:0.3, ease:'power1.out' });
+
+        // sound effect (short beep) if enabled
+        if (soundOn) {
+          try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 800;
+            gain.gain.value = 0.05;
+            osc.start();
+            setTimeout(() => { osc.stop(); }, 60);
+          } catch(e) {}
+        }
+      }
+
+      function renderTruthTable() {
+        const rows = [];
+        const gate = currentGate;
+        for (let a=0; a<=1; a++) {
+          for (let b=0; b<=1; b++) {
+            if (gate === 'NOT') { 
+              if (b===1) continue;
+              const out = computeGate(gate, a, 0);
+              const highlight = (a === inputA && 0 === inputB) ? 'highlight-row' : '';
+              rows.push(`<tr class="${highlight}"><td>${a}</td><td>—</td><td>${out}</td></tr>`);
+            } else {
+              const out = computeGate(gate, a, b);
+              const highlight = (a === inputA && b === inputB) ? 'highlight-row' : '';
+              rows.push(`<tr class="${highlight}"><td>${a}</td><td>${b}</td><td>${out}</td></tr>`);
+            }
+          }
+        }
+        truthBody.innerHTML = rows.join('');
+      }
+
+      // ----- Copy truth table / PDF (simulated)-----
+      function copyTruthTable() {
+        const rows = truthBody.innerText;
+        navigator.clipboard?.writeText(`Truth Table (${currentGate}):\n${rows}`).then(() => {
+          alert('Truth table copied!');
+        }).catch(()=> alert('Copy not supported.'));
+      }
+      function exportPDF() {
+        alert('PDF export simulation: would generate a PDF with current simulation state.');
+      }
+
+      // ----- Dark mode -----
+      function toggleDark() {
+        darkMode = !darkMode;
+        document.documentElement.classList.toggle('dark', darkMode);
+        darkToggle.innerHTML = darkMode ? '<i data-lucide="sun" class="w-5 h-5"></i>' : '<i data-lucide="moon" class="w-5 h-5"></i>';
+        lucide.createIcons();
+      }
+
+      // ----- Reset, random -----
+      function resetAll() {
+        inputA = 0; inputB = 0;
+        updateSimulation();
+        gsap.from('.logic-input', { scale:0.8, opacity:0.2, duration:0.3, stagger:0.05 });
+      }
+      function randomInputs() {
+        inputA = Math.floor(Math.random()*2);
+        inputB = currentGate === 'NOT' ? 0 : Math.floor(Math.random()*2);
+        updateSimulation();
+        gsap.from('.logic-input', { rotation:10, duration:0.2 });
+      }
+
+      // ----- Event listeners -----
+      gateSelect.addEventListener('change', (e) => {
+        currentGate = e.target.value;
+        if (currentGate === 'NOT') inputB = 0;
+        updateSimulation();
+        gsap.from('.gate-symbol', { scale:0.9, opacity:0.3, duration:0.2 });
+      });
+      inputABtn.addEventListener('click', () => { inputA ^= 1; updateSimulation(); });
+      inputBBtn.addEventListener('click', () => { if (currentGate !== 'NOT') { inputB ^= 1; updateSimulation(); } });
+      darkToggle.addEventListener('click', toggleDark);
+      resetSim.addEventListener('click', resetAll);
+      randomInput.addEventListener('click', randomInputs);
+      soundToggle.addEventListener('click', () => { soundOn = !soundOn; soundToggle.innerHTML = soundOn ? '<i data-lucide="volume-2" class="w-5 h-5"></i>' : '<i data-lucide="volume-x" class="w-5 h-5"></i>'; lucide.createIcons(); });
+      copyTruthBtn.addEventListener('click', copyTruthTable);
+      exportPdfBtn.addEventListener('click', exportPDF);
+      startSimBtn.addEventListener('click', () => { document.querySelector('.logic-input')?.scrollIntoView({behavior:'smooth'}); });
+
+      // Initial render
+      updateSimulation();
+      lucide.createIcons();
+      // GSAP entrance animation
+      gsap.from('.glass', { y:20, opacity:0, duration:0.6, stagger:0.08, ease:'power2.out' });
+    })();
+  </script>
+</body>
+</html>
